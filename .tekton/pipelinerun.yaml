@@ -7,19 +7,50 @@ metadata:
     pipelinesascode.tekton.dev/on-event: "[push]"
     pipelinesascode.tekton.dev/on-target-branch: "[main]"
 spec:
-  # ¡Reutilizamos el Pipeline que ya tenemos en el Cluster!
-  pipelineRef:
-    name: build-and-update-gitops
-  serviceAccountName: pipeline
-  workspaces:
-    - name: shared-workspace
-      persistentVolumeClaim:
-        claimName: pipeline-workspace
   params:
-    # PaC inyecta estas variables dinámicamente usando el formato {{var}}
-    - name: source-repo-url
-      value: "{{repo_url}}" 
-    - name: gitops-repo-url
-      value: "https://github.com/jovemfelix/bla-config.git"
-    - name: image-tag
-      value: "{{revision}}" # Esto inyecta el Commit SHA automáticamente
+    - name: repo_url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
+  pipelineSpec:
+    params:
+      - name: repo_url
+      - name: revision
+    workspaces:
+      - name: source
+    tasks:
+      - name: fetch-repository
+        taskRef:
+          name: git-clone
+        workspaces:
+          - name: output
+            workspace: source
+        params:
+          - name: url
+            value: $(params.repo_url)
+          - name: revision
+            value: $(params.revision)
+      - name: simple-test
+        runAfter:
+          - fetch-repository
+        workspaces:
+          - name: source
+            workspace: source
+        taskSpec:
+          workspaces:
+            - name: source
+          steps:
+            - name: echo-test
+              image: alpine:latest
+              script: |
+                echo "¡Pipeline as Code ejecutado con éxito!"
+                echo "Commit: $(params.revision)"
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
