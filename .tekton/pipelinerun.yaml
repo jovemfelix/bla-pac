@@ -6,6 +6,8 @@ metadata:
     # Estas Annotations le dicen a OpenShift cuándo ejecutar este Pipeline
     pipelinesascode.tekton.dev/on-event: "[push]"
     pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    # URL directa a la Task remota
+    pipelinesascode.tekton.dev/task: "[https://raw.githubusercontent.com/tektoncd/catalog/main/task/git-clone/0.9/git-clone.yaml]"
 spec:
   params:
     - name: repo_url
